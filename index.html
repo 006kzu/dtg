@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Don't Let the Balloon Touch!</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+
+    <div id="hud">
+      <div class="divider" id="divider"></div>
+      <div id="score-box">
+        <div id="score">0</div>
+        <div id="score-label">POINTS</div>
+        <div id="combo"></div>
+        <div id="timer">0.0s</div>
+      </div>
+      <div class="pstat left" id="p1-stat"><span class="dot red"></span>P1</div>
+      <div class="pstat right" id="p2-stat"><span class="dot blue"></span>P2</div>
+      <div id="net-stat"></div>
+      <div id="toast"></div>
+    </div>
+
+    <div id="overlay" class="show">
+      <div class="panel">
+        <h1>Don't Let the<br /><span>Balloon</span> Touch!</h1>
+        <p class="sub">The Great Lunch Room Edition</p>
+
+        <!-- main menu -->
+        <section id="menu">
+          <div class="modes">
+            <button class="big red" id="btn-host">🌐 Host online game</button>
+            <div class="join">
+              <input id="join-code" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false" />
+              <button class="big blue" id="btn-join">Join</button>
+            </div>
+            <button class="small" id="btn-local">🎮 Local 2-player (same computer)</button>
+          </div>
+        </section>
+
+        <!-- lobby / waiting / game over -->
+        <section id="lobby" hidden>
+          <div id="result"></div>
+          <div id="status"></div>
+          <div id="code-big"></div>
+          <div id="hint"></div>
+          <button class="big red" id="btn-start" hidden>Start! <kbd>Enter</kbd></button>
+          <button class="small" id="btn-leave">Back to menu</button>
+        </section>
+
+        <div class="controls" id="controls-online">
+          <div class="ctl red">
+            <h3>Online: your controls</h3>
+            <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows: move</p>
+            <p><kbd>Space</kbd> jump (press again in the air to double jump)</p>
+            <p><kbd>Q</kbd> or <kbd>J</kbd> hit &nbsp; <kbd>E</kbd> or <kbd>K</kbd> kick</p>
+          </div>
+          <div class="ctl blue">
+            <h3>Local: P1 / P2</h3>
+            <p><b>P1</b> <kbd>WASD</kbd> move · <kbd>Space</kbd> jump · <kbd>Q</kbd> hit · <kbd>E</kbd> kick</p>
+            <p><b>P2</b> <kbd>IJKL</kbd>/arrows · <kbd>;</kbd>/<kbd>Enter</kbd> jump · <kbd>U</kbd> hit · <kbd>O</kbd> kick</p>
+          </div>
+        </div>
+        <p class="pad">🎮 Gamepad: stick move · <b>A</b> jump · <b>X</b> hit · <b>B</b> kick · <b>Start</b> play</p>
+        <p class="rules">
+          Stand under it for a <b>bump</b>, <b>hit</b> it for a boost, <b>kick</b> it for a MASSIVE launch.<br />
+          The balloon may only touch players &mdash; not the floor, tables, walls, lights or ceiling!<br />
+          Take turns touching it to build a combo multiplier. The pink ring shows where it's falling.
+        </p>
+        <p class="best" id="best"></p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
