@@ -1,8 +1,8 @@
 # Don't Let the Balloon Touch! — Lunch Room Edition
 
 A 3rd-person, 2-player co-op game: keep the balloon in the air inside a giant cartoon
-cafeteria. The balloon may only touch players. Floor, tables, walls, ceiling lights and
-the ceiling all pop it.
+cafeteria. The balloon pops if it touches the floor, tables or ceiling lights. It
+bounces safely off the walls and ceiling.
 
 Runs in any modern browser (Chrome, Edge, Firefox, Safari), so it works on **Windows and macOS**.
 
@@ -12,6 +12,9 @@ Runs in any modern browser (Chrome, Edge, Firefox, Safari), so it works on **Win
 | **Bump**: just be under or against it | small pop upward (~2 m) |
 | **Hit** | bigger boost up and forward (~6 m) |
 | **Kick** | MASSIVE launch (~15 m). Watch out for the ceiling lights! |
+
+Where you stand matters: a balloon off to your side gets sent that way, running carries
+your momentum into it, low hits pop it up and high hits drive it forward.
 
 Jump twice (double jump) to climb tables, juice boxes, the tray tower, the balcony and the
 floating sandwiches. The pink ring on the ground shows where the balloon will land, and it

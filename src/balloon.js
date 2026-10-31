@@ -4,14 +4,20 @@ import { ROOM, toon } from './world.js';
 import { PLAYER_RADIUS } from './player.js';
 
 export const BALLOON_RADIUS = 0.65;
-const GRAVITY = 3.2;
-const DRAG = 0.55;
+const GRAVITY = 2.2;
+const DRAG = 0.6;
+const WALL_BOUNCE = 0.6;  // fraction of speed kept when bouncing off a wall
+const CEIL_BOUNCE = 0.4;
 const MAX_SPEED = 32;
 
 // Launch strengths
 const BUMP_UP = 4.5;
-const HIT_FWD = 7, HIT_UP = 10;
-const KICK_FWD = 10, KICK_UP = 17;
+const HIT_FWD = 7, HIT_UP = 8.5;
+const KICK_FWD = 10, KICK_UP = 14;
+// Aim: how much the balloon's offset from the player steers hits/kicks/bumps
+const AIM_LATERAL = 0.9;
+const BUMP_SIDE = 3;
+const CARRY = 0.5; // share of the player's run velocity passed on to the balloon
 const HIT_REACH = 1.8;
 const KICK_REACH = 1.7;
 
@@ -88,21 +94,36 @@ export class Balloon {
     this.vel.multiplyScalar(Math.exp(-DRAG * dt));
     if (this.vel.length() > MAX_SPEED) this.vel.setLength(MAX_SPEED);
     this.pos.addScaledVector(this.vel, dt);
+    this.bounceOffRoom();
     if (!detectHazards) {
-      // keep a non-authoritative copy inside the room
-      this.pos.x = THREE.MathUtils.clamp(this.pos.x, ROOM.minX + BALLOON_RADIUS, ROOM.maxX - BALLOON_RADIUS);
-      this.pos.z = THREE.MathUtils.clamp(this.pos.z, ROOM.minZ + BALLOON_RADIUS, ROOM.maxZ - BALLOON_RADIUS);
-      this.pos.y = THREE.MathUtils.clamp(this.pos.y, BALLOON_RADIUS, ROOM.height - BALLOON_RADIUS);
+      // keep a non-authoritative copy above the floor
+      this.pos.y = Math.max(this.pos.y, BALLOON_RADIUS);
       return null;
     }
     return this.hazardAt(this.pos, colliders);
   }
 
+  // Walls and ceiling are safe: the balloon bounces softly off them.
+  bounceOffRoom() {
+    const r = BALLOON_RADIUS, p = this.pos, v = this.vel;
+    if (p.x - r < ROOM.minX) { p.x = ROOM.minX + r; v.x = Math.abs(v.x) * WALL_BOUNCE; }
+    if (p.x + r > ROOM.maxX) { p.x = ROOM.maxX - r; v.x = -Math.abs(v.x) * WALL_BOUNCE; }
+    if (p.z - r < ROOM.minZ) { p.z = ROOM.minZ + r; v.z = Math.abs(v.z) * WALL_BOUNCE; }
+    if (p.z + r > ROOM.maxZ) { p.z = ROOM.maxZ - r; v.z = -Math.abs(v.z) * WALL_BOUNCE; }
+    if (p.y + r > ROOM.height) { p.y = ROOM.height - r; v.y = -Math.abs(v.y) * CEIL_BOUNCE; }
+  }
+
+  // Launch direction for hits/kicks: the player's facing, bent toward the side the balloon is on.
+  aimDir(player) {
+    const facing = player.facing;
+    const off = new THREE.Vector3(this.pos.x - player.pos.x, 0, this.pos.z - player.pos.z);
+    const lateral = off.addScaledVector(facing, -off.dot(facing));
+    return facing.clone().setY(0).addScaledVector(lateral, AIM_LATERAL).normalize();
+  }
+
   hazardAt(p, colliders) {
     const r = BALLOON_RADIUS;
     if (p.y - r <= 0) return 'the floor';
-    if (p.y + r >= ROOM.height) return 'the ceiling';
-    if (p.x - r <= ROOM.minX || p.x + r >= ROOM.maxX || p.z - r <= ROOM.minZ || p.z + r >= ROOM.maxZ) return 'the wall';
     for (const c of colliders) {
       const cx = THREE.MathUtils.clamp(p.x, c.min.x, c.max.x);
       const cy = THREE.MathUtils.clamp(p.y, c.min.y, c.max.y);
@@ -124,9 +145,9 @@ export class Balloon {
       const hip = player.pos.clone().addScaledVector(facing, 0.3); hip.y += 1.0;
       if (distToSegment(b, foot, hip) < KICK_REACH) {
         player.kickUsed = true;
-        const v = facing.clone().multiplyScalar(KICK_FWD);
+        const v = this.aimDir(player).multiplyScalar(KICK_FWD);
         v.y = KICK_UP;
-        v.x += player.vel.x * 0.3; v.z += player.vel.z * 0.3;
+        v.x += player.vel.x * CARRY; v.z += player.vel.z * CARRY;
         return { kind: 'kick', vel: v };
       }
     }
@@ -135,9 +156,11 @@ export class Balloon {
       const chest = player.pos.clone(); chest.y += 1.0;
       if (distToSegment(b, chest, hand) < HIT_REACH) {
         player.hitUsed = true;
-        const v = facing.clone().multiplyScalar(HIT_FWD);
-        v.y = HIT_UP;
-        v.x += player.vel.x * 0.3; v.z += player.vel.z * 0.3;
+        // contact height: low hits pop up, high hits drive it forward
+        const h = THREE.MathUtils.clamp((b.y - player.pos.y - 1.0) / 1.2, 0, 1);
+        const v = this.aimDir(player).multiplyScalar(HIT_FWD * THREE.MathUtils.lerp(0.6, 1.4, h));
+        v.y = HIT_UP * THREE.MathUtils.lerp(1.1, 0.85, h);
+        v.x += player.vel.x * CARRY; v.z += player.vel.z * CARRY;
         return { kind: 'hit', vel: v };
       }
     }
@@ -154,6 +177,8 @@ export class Balloon {
       const along = rel.dot(n);
       if (along < 0) v.addScaledVector(n, -1.6 * along);
       v.addScaledVector(n, 1.5);
+      // off-center bumps send the balloon sideways
+      v.x += n.x * BUMP_SIDE; v.z += n.z * BUMP_SIDE;
       if (n.y > -0.2) v.y = Math.max(v.y, BUMP_UP + Math.max(0, player.vel.y) * 0.5);
       player.bumpCooldown = 0.3;
       return { kind: 'bump', vel: v, push: closest.addScaledVector(n, BALLOON_RADIUS + PLAYER_RADIUS + 0.02) };
