@@ -75,11 +75,12 @@ const COUNTDOWN = 3;
 const SEND_RATE = 1 / 30;
 
 const state = {
-  mode: 'menu', // menu | local | host | guest
+  mode: 'menu', // menu | solo | local | host | guest
   phase: 'menu', // menu | lobby | countdown | play | over
   score: 0,
   mult: 1,
   lastToucher: -1,
+  lastKind: '', // solo combos come from mixing up your moves
   time: 0,
   countdown: 0,
 };
@@ -87,16 +88,25 @@ let net = null;
 let sendTimer = 0;
 let guestGrace = 0; // after the guest touches the balloon, trust the local prediction for a moment
 const hostBalloon = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), fresh: false };
-let best = Number(safeGet('dtg-best') || 0);
+// best scores are kept separately for solo and 2-player rounds
+const bestKey = () => (state.mode === 'solo' ? 'dtg-best-solo' : 'dtg-best');
+const best = { 'dtg-best': Number(safeGet('dtg-best') || 0), 'dtg-best-solo': Number(safeGet('dtg-best-solo') || 0) };
+function bestText() {
+  const parts = [];
+  if (best['dtg-best-solo']) parts.push(`solo ${best['dtg-best-solo']}`);
+  if (best['dtg-best']) parts.push(`2-player ${best['dtg-best']}`);
+  return parts.length ? `Best on this computer: ${parts.join(' · ')}` : '';
+}
 
 // players simulated on THIS computer
 function localPlayers() {
   if (state.mode === 'local') return [0, 1];
+  if (state.mode === 'solo') return [0];
   if (state.mode === 'host') return [0];
   if (state.mode === 'guest') return [1];
   return [];
 }
-const authoritative = () => state.mode === 'local' || state.mode === 'host';
+const authoritative = () => state.mode === 'local' || state.mode === 'solo' || state.mode === 'host';
 const online = () => state.mode === 'host' || state.mode === 'guest';
 
 // ---------- UI ----------
@@ -115,7 +125,7 @@ function showMenu() {
   ui.overlay.classList.add('show');
   ui.menu.hidden = false;
   ui.lobby.hidden = true;
-  ui.best.textContent = best ? `Best score on this computer: ${best}` : '';
+  ui.best.textContent = bestText();
 }
 
 function showLobby({ result = '', status = '', code = '', hint = '', canStart = false } = {}) {
@@ -127,7 +137,7 @@ function showLobby({ result = '', status = '', code = '', hint = '', canStart = 
   ui.code.textContent = code;
   ui.hint.textContent = hint;
   ui.startBtn.hidden = !canStart;
-  ui.best.textContent = best ? `Best score on this computer: ${best}` : '';
+  ui.best.textContent = bestText();
 }
 
 function hideOverlay() { ui.overlay.classList.remove('show'); }
@@ -148,14 +158,16 @@ function updateHud() {
   ui.divider.style.display = state.mode === 'local' ? '' : 'none';
   if (state.mode === 'host') { ui.p1.lastChild.textContent = 'P1 (you)'; ui.p2.lastChild.textContent = net?.connected ? 'P2 (friend)' : 'P2 (waiting…)'; }
   else if (state.mode === 'guest') { ui.p1.lastChild.textContent = 'P1 (friend)'; ui.p2.lastChild.textContent = 'P2 (you)'; }
+  else if (state.mode === 'solo') { ui.p1.lastChild.textContent = 'You'; }
   else { ui.p1.lastChild.textContent = 'P1'; ui.p2.lastChild.textContent = 'P2'; }
-  ui.p1.style.display = ui.p2.style.display = inGame ? '' : 'none';
+  ui.p1.style.display = inGame ? '' : 'none';
+  ui.p2.style.display = inGame && state.mode !== 'solo' ? '' : 'none';
   ui.netStat.textContent = online() && net?.connected ? `ping ${Math.round(net.rtt * 1000)} ms` : '';
 }
 
 // ---------- Round flow ----------
 function resetRound() {
-  state.score = 0; state.mult = 1; state.lastToucher = -1; state.time = 0;
+  state.score = 0; state.mult = 1; state.lastToucher = -1; state.lastKind = ''; state.time = 0;
   state.countdown = COUNTDOWN;
   state.phase = 'countdown';
   for (const i of localPlayers()) players[i].reset(SPAWNS[i][0], SPAWNS[i][1], Math.PI);
@@ -174,8 +186,11 @@ function startGame() {
 }
 
 function registerTouch(who, kind, playSound = true) {
-  if (state.lastToucher === -1 || state.lastToucher === who) state.mult = 1;
+  // 2 players: alternate who touches it. Solo: alternate which move you use.
+  const repeat = state.mode === 'solo' ? state.lastKind === kind : state.lastToucher === who;
+  if (state.lastToucher === -1 || repeat) state.mult = 1;
   else state.mult = Math.min(5, state.mult + 1);
+  state.lastKind = kind;
   state.lastToucher = who;
   state.score += state.mult;
   ui.score.classList.remove('bump'); void ui.score.offsetWidth; ui.score.classList.add('bump');
@@ -192,11 +207,13 @@ function endRound(reason) {
   if (balloon.pos.y < 2) water.splash(balloon.pos.x, balloon.pos.z, true);
   sfx.pop();
   toast('POP!', 1.2);
-  if (state.score > best) { best = state.score; safeSet('dtg-best', String(best)); }
+  const key = bestKey();
+  const newBest = state.score > best[key];
+  if (newBest) { best[key] = state.score; safeSet(key, String(state.score)); }
   if (state.mode === 'host') net.send({ t: 'pop', reason, score: state.score, time: state.time });
   setTimeout(() => {
     if (state.phase !== 'over') return;
-    const result = `It touched ${reason}! ${state.score} point${state.score === 1 ? '' : 's'} in ${state.time.toFixed(1)}s`;
+    const result = `It touched ${reason}! ${state.score} point${state.score === 1 ? '' : 's'} in ${state.time.toFixed(1)}s${newBest && state.score ? ' (new best!)' : ''}`;
     if (state.mode === 'guest') showLobby({ result, status: 'Waiting for the host to start another round…' });
     else showLobby({ result, status: 'Ready for another round?', canStart: true });
   }, 1400);
@@ -284,6 +301,7 @@ $('btn-join').onclick = () => {
   unlockAudio(); state.mode = 'guest'; players[0].mesh.visible = false; setupNet(false, code);
 };
 $('join-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn-join').click(); });
+$('btn-solo').onclick = () => { unlockAudio(); state.mode = 'solo'; players[0].mesh.visible = true; players[1].mesh.visible = false; startGame(); };
 $('btn-local').onclick = () => { unlockAudio(); state.mode = 'local'; players[0].mesh.visible = players[1].mesh.visible = true; startGame(); };
 $('btn-start').onclick = () => { unlockAudio(); startGame(); };
 $('btn-leave').onclick = () => {
@@ -312,6 +330,7 @@ function frame(now, fromWorker = false) {
   const active = state.phase === 'countdown' || state.phase === 'play' || state.phase === 'over';
   const inputs = {};
   for (const i of mine) {
+    // solo uses the same comfy one-player layout as online
     inputs[i] = state.mode === 'local' ? pollPlayer(i, i) : pollPlayer(ONLINE_KEYS, 0);
   }
 
@@ -412,6 +431,8 @@ function render(dt, now) {
   const views = [];
   if (state.mode === 'local' && state.phase !== 'menu') {
     views.push({ rig: 0, x: 0, w: Math.floor(w / 2) }, { rig: 1, x: Math.ceil(w / 2), w: Math.floor(w / 2) });
+  } else if (state.mode === 'solo' && state.phase !== 'menu') {
+    views.push({ rig: 0, x: 0, w });
   } else if (online() && state.phase !== 'lobby' && state.phase !== 'menu') {
     views.push({ rig: state.mode === 'host' ? 0 : 1, x: 0, w });
   }

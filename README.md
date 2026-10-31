@@ -1,6 +1,6 @@
 # Don't Let the Balloon Touch! — Lunch Room Edition
 
-A 3rd-person, 2-player co-op game: keep the balloon in the air inside a giant cartoon
+A 3rd-person game for 1 or 2 players (single player, local split-screen or online co-op): keep the balloon in the air inside a giant cartoon
 cafeteria. The floor is flooded, and the balloon pops only if it touches the water.
 It bounces safely off everything else: walls, ceiling, tables, lights and platforms.
 
@@ -21,10 +21,11 @@ You can wade through the water, but it slows you down. Jump twice (double jump, 
 high) to climb milk crates, tables, juice boxes, the tray tower, floating cookies, sandwiches
 and pizza. There are three raised levels: the right balcony (with an upper deck above it) and
 the left loft (with a long staircase along the front wall). The pink ring under the balloon
-shows where it will land, and it turns red when the balloon is about to hit the water. Taking turns touching the balloon builds a combo multiplier (up to x5).
+shows where it will land, and it turns red when the balloon is about to hit the water. Taking turns touching the balloon builds a combo multiplier (up to x5). In single player,
+the combo builds by mixing up your moves (bump, hit, kick) and resets if you repeat one.
 
 ## Controls
-**Online (one player per computer):** `WASD`/arrows move · `Space` jump · `Q`/`J` hit · `E`/`K` kick · `Shift` sprint
+**Single player / online (one player per computer):** `WASD`/arrows move · `Space` jump · `Q`/`J` hit · `E`/`K` kick · `Shift` sprint
 
 **Local split-screen:** P1 `WASD` · `Space` · `Q` hit · `E` kick · `Left Shift` sprint. P2 `IJKL`/arrows · `;`/`Enter` jump · `U` hit · `O` kick · `Right Shift` sprint
 
