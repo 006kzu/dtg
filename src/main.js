@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { buildWorld, ROOM } from './world.js';
 import { Player } from './player.js';
 import { Balloon } from './balloon.js';
+import { Water } from './water.js';
 import { pollPlayer, startPressed, endFrame, ONLINE_KEYS } from './input.js';
 import { Net } from './net.js';
 import { sfx, unlockAudio } from './audio.js';
@@ -25,9 +26,10 @@ Object.assign(sun.shadow.camera, { left: -34, right: 34, top: 26, bottom: -26, n
 sun.shadow.bias = -0.0005;
 scene.add(sun);
 
-const { colliders } = buildWorld(scene);
+const { colliders, water: waterMesh } = buildWorld(scene);
 const players = [new Player(0, scene), new Player(1, scene)];
 const balloon = new Balloon(scene);
+const water = new Water(scene, waterMesh);
 
 // ---------- Cameras: third-person rigs that keep the balloon in view ----------
 class CamRig {
@@ -187,6 +189,7 @@ function endRound(reason) {
   if (state.phase !== 'play') return;
   state.phase = 'over';
   balloon.pop();
+  if (balloon.pos.y < 2) water.splash(balloon.pos.x, balloon.pos.z, true);
   sfx.pop();
   toast('POP!', 1.2);
   if (state.score > best) { best = state.score; safeSet('dtg-best', String(best)); }
@@ -385,6 +388,7 @@ function frame(now, fromWorker = false) {
   }
 
   balloon.render(dt, colliders);
+  water.update(dt, players);
 
   // network send
   sendTimer += dt;

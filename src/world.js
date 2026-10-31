@@ -352,5 +352,5 @@ export function buildWorld(scene) {
     }
   }
 
-  return { colliders, group };
+  return { colliders, group, water };
 }
