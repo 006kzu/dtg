@@ -1,8 +1,8 @@
 # Don't Let the Balloon Touch! — Lunch Room Edition
 
 A 3rd-person, 2-player co-op game: keep the balloon in the air inside a giant cartoon
-cafeteria. The balloon pops if it touches the floor, tables or ceiling lights. It
-bounces safely off the walls and ceiling.
+cafeteria. The floor is flooded, and the balloon pops only if it touches the water.
+It bounces safely off everything else: walls, ceiling, tables, lights and platforms.
 
 Runs in any modern browser (Chrome, Edge, Firefox, Safari), so it works on **Windows and macOS**.
 
@@ -11,14 +11,16 @@ Runs in any modern browser (Chrome, Edge, Firefox, Safari), so it works on **Win
 |------|--------------|
 | **Bump**: just be under or against it | small pop upward (~2 m) |
 | **Hit** | bigger boost up and forward (~6 m) |
-| **Kick** | MASSIVE launch (~15 m). Watch out for the ceiling lights! |
+| **Kick** | MASSIVE launch (~15 m) |
 
 Where you stand matters: a balloon off to your side gets sent that way, running carries
 your momentum into it, low hits pop it up and high hits drive it forward.
 
-Jump twice (double jump) to climb tables, juice boxes, the tray tower, the balcony and the
-floating sandwiches. The pink ring on the ground shows where the balloon will land, and it
-turns red when the balloon gets low. Taking turns touching the balloon builds a combo multiplier (up to x5).
+You can wade through the water, but it slows you down. Jump twice (double jump, about 6 m
+high) to climb milk crates, tables, juice boxes, the tray tower, floating cookies, sandwiches
+and pizza. There are three raised levels: the right balcony (with an upper deck above it) and
+the left loft (with a long staircase along the front wall). The pink ring under the balloon
+shows where it will land, and it turns red when the balloon is about to hit the water. Taking turns touching the balloon builds a combo multiplier (up to x5).
 
 ## Controls
 **Online (one player per computer):** `WASD`/arrows move · `Space` jump · `Q`/`J` hit · `E`/`K` kick

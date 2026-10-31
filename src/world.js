@@ -57,7 +57,7 @@ export function buildWorld(scene) {
     return mesh;
   }
 
-  // ---------- Floor ----------
+  // ---------- Floor (flooded! the water is the only thing that pops the balloon) ----------
   const W = ROOM.maxX - ROOM.minX, D = ROOM.maxZ - ROOM.minZ, H = ROOM.height;
   const floorTex = canvasTexture(256, 256, (g, w, h) => {
     g.fillStyle = '#f4ead2'; g.fillRect(0, 0, w, h);
@@ -70,8 +70,23 @@ export function buildWorld(scene) {
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   group.add(floor);
+  const waterTex = canvasTexture(256, 256, (g, w, h) => {
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(80,170,255,.55)'; g.lineWidth = 6; g.lineCap = 'round';
+    for (let i = 0; i < 9; i++) {
+      const x = (i * 97) % w, y = (i * 61) % h;
+      g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 18, y - 10, x + 36, y); g.stroke();
+    }
+  });
+  waterTex.wrapS = waterTex.wrapT = THREE.RepeatWrapping;
+  waterTex.repeat.set(W / 8, D / 8);
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(W, D), toon(0x5fc8ff, { map: waterTex, transparent: true, opacity: 0.72, emissive: 0x1a6fb0, emissiveIntensity: 0.25 }));
+  water.rotation.x = -Math.PI / 2;
+  water.position.y = 0.06;
+  water.receiveShadow = true;
+  group.add(water);
 
-  // ---------- Walls & ceiling (hazards handled as room bounds) ----------
+  // ---------- Walls & ceiling (the balloon bounces off them) ----------
   const wallTex = canvasTexture(256, 512, (g, w, h) => {
     g.fillStyle = '#ffd98a'; g.fillRect(0, 0, w, h);
     g.fillStyle = '#ffcb5c'; g.fillRect(0, h * 0.82, w, h * 0.18);
@@ -279,7 +294,54 @@ export function buildWorld(scene) {
   pizza(18, 6.5, 6, 2.2);
   pizza(-20, 7, 11, 0.8);
 
-  // ---------- Hanging ceiling lights (balloon hazards!) ----------
+  // ---------- Left loft (y=10) with a long staircase along the front wall ----------
+  const loftY = 10;
+  box(-26, loftY - 0.6, 14, 8, 0.6, 16, 0x8fd3ff, { name: 'loft' });
+  for (const z of [7, 13, 20]) box(-22.4, 0, z, 0.8, loftY - 0.6, 0.8, 0xf2f2f2, { name: 'pillar' });
+  box(-21.85, loftY, 11, 0.15, 0.7, 10, 0x4fbf5a, { name: 'railing' });
+  const leftSteps = 18;
+  for (let i = 0; i < leftSteps; i++) {
+    box(-4.5 - i, 0, 19.5, 1, ((i + 1) / leftSteps) * loftY, 3, i % 2 ? 0x8fd3ff : 0x6fc0f5, { name: 'stairs' });
+  }
+
+  // ---------- Upper deck above the right balcony (y=13) with stairs from the balcony ----------
+  const deckY = 13;
+  box(26.5, deckY - 0.5, 15, 7, 0.5, 14, 0xff8fa3, { name: 'upper deck' });
+  for (const z of [9, 21]) box(23.4, balcY, z, 0.6, deckY - balcY - 0.5, 0.6, 0xf2f2f2, { name: 'pillar' });
+  const deckSteps = 14;
+  for (let i = 0; i < deckSteps; i++) {
+    const h = ((i + 1) / deckSteps) * (deckY - balcY);
+    box(28.6, balcY, -6 + i, 2.6, h, 1, i % 2 ? 0xff8fa3 : 0xff7a93, { name: 'stairs' });
+  }
+
+  // ---------- Milk crates: stepping stones out of the water ----------
+  for (const [x, z, h] of [[1, -4.5, 1.2], [-11, 5.5, 1.2], [11.5, 6, 1.2], [-26, 0, 1.2], [1.5, 9, 2.4], [-13, -11.5, 1.2]]) {
+    box(x, 0, z, 1.8, h, 1.8, 0x3d8bff, { name: 'milk crate' });
+    box(x, h, z, 1.9, 0.1, 1.9, 0x2a6fd6, { name: 'milk crate', collide: false });
+  }
+
+  // ---------- Floating cookies: mid-level platforms linking the floor to the high spots ----------
+  function cookie(x, y, z, r = 1.4) {
+    cylinder(x, y, z, r, 0.4, 0xd9a35a, { name: 'floating cookie', segments: 24 });
+    for (let k = 0; k < 4; k++) {
+      const chip = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), toon(0x5a3a22));
+      chip.position.set(x + Math.cos(k * 1.7) * r * 0.55, y + 0.42, z + Math.sin(k * 1.7) * r * 0.55);
+      chip.scale.y = 0.5;
+      group.add(chip);
+    }
+  }
+  cookie(-2, 4, 4);
+  cookie(3, 7, -3);
+  cookie(-6, 9.5, -5);
+  cookie(9, 7.5, -10);
+  cookie(-15, 6.5, 6);
+  cookie(-21, 10, 1);
+  cookie(12, 9.5, 14);
+  cookie(-14, 15.5, 14, 1.6);
+  cookie(4, 16, 12, 1.6);
+  cookie(18, 15, 10);
+
+  // ---------- Hanging ceiling lights (the balloon bounces off these too) ----------
   const lights = [];
   for (const x of [-18, -6, 6, 18]) {
     for (const z of [-11, 0, 11]) {

@@ -8,8 +8,9 @@ const SPEED = 9;
 const GROUND_ACCEL = 70;
 const AIR_ACCEL = 28;
 const GRAVITY = 28;
-const JUMP_VEL = 11;
-const DOUBLE_JUMP_VEL = 10;
+const JUMP_VEL = 13.5;
+const DOUBLE_JUMP_VEL = 12.5;
+const WADE_SPEED = 0.7; // speed multiplier while wading through the floor water
 const STEP_UP = 0.6;
 
 export const HIT_WINDOW = 0.22;
@@ -121,7 +122,8 @@ export class Player {
       this.yaw += d * Math.min(1, dt * 14);
     }
     const accel = this.grounded ? GROUND_ACCEL : AIR_ACCEL;
-    const tx = wish.x * SPEED * wishLen, tz = wish.z * SPEED * wishLen;
+    const speed = this.grounded && this.pos.y <= 0.01 ? SPEED * WADE_SPEED : SPEED;
+    const tx = wish.x * speed * wishLen, tz = wish.z * speed * wishLen;
     this.vel.x += THREE.MathUtils.clamp(tx - this.vel.x, -accel * dt, accel * dt);
     this.vel.z += THREE.MathUtils.clamp(tz - this.vel.z, -accel * dt, accel * dt);
 

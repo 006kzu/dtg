@@ -8,6 +8,7 @@ const GRAVITY = 2.2;
 const DRAG = 0.6;
 const WALL_BOUNCE = 0.6;  // fraction of speed kept when bouncing off a wall
 const CEIL_BOUNCE = 0.4;
+const OBJECT_BOUNCE = 0.5; // tables, lights, platforms…
 const MAX_SPEED = 32;
 
 // Launch strengths
@@ -82,7 +83,7 @@ export class Balloon {
     this.vel.set(0, 3, 0);
   }
 
-  // Physics integration. Returns the name of whatever hazard it touched, or null.
+  // Physics integration. Returns 'the water' if it touched the floor, else null.
   step(dt, colliders, detectHazards = true) {
     this.time += dt;
     if (this.frozen) return null;
@@ -95,12 +96,38 @@ export class Balloon {
     if (this.vel.length() > MAX_SPEED) this.vel.setLength(MAX_SPEED);
     this.pos.addScaledVector(this.vel, dt);
     this.bounceOffRoom();
+    this.bounceOffObjects(colliders);
     if (!detectHazards) {
-      // keep a non-authoritative copy above the floor
+      // keep a non-authoritative copy above the water
       this.pos.y = Math.max(this.pos.y, BALLOON_RADIUS);
       return null;
     }
-    return this.hazardAt(this.pos, colliders);
+    return this.pos.y - BALLOON_RADIUS <= 0 ? 'the water' : null;
+  }
+
+  // Everything in the room is safe to touch: the balloon bounces off it.
+  bounceOffObjects(colliders) {
+    const r = BALLOON_RADIUS, p = this.pos, v = this.vel;
+    for (const c of colliders) {
+      const cx = THREE.MathUtils.clamp(p.x, c.min.x, c.max.x);
+      const cy = THREE.MathUtils.clamp(p.y, c.min.y, c.max.y);
+      const cz = THREE.MathUtils.clamp(p.z, c.min.z, c.max.z);
+      const n = new THREE.Vector3(p.x - cx, p.y - cy, p.z - cz);
+      const d = n.length();
+      if (d >= r) continue;
+      if (d > 1e-6) {
+        n.divideScalar(d);
+        p.set(cx, cy, cz).addScaledVector(n, r + 0.001);
+      } else {
+        // center is inside the box: push out through the nearest face
+        const faces = [[p.x - c.min.x, 'x', -1], [c.max.x - p.x, 'x', 1], [p.y - c.min.y, 'y', -1], [c.max.y - p.y, 'y', 1], [p.z - c.min.z, 'z', -1], [c.max.z - p.z, 'z', 1]];
+        const [, axis, sign] = faces.reduce((a, b) => (b[0] < a[0] ? b : a));
+        n.set(0, 0, 0)[axis] = sign;
+        p[axis] = (sign > 0 ? c.max[axis] : c.min[axis]) + sign * (r + 0.001);
+      }
+      const along = v.dot(n);
+      if (along < 0) v.addScaledVector(n, -(1 + OBJECT_BOUNCE) * along);
+    }
   }
 
   // Walls and ceiling are safe: the balloon bounces softly off them.
@@ -119,19 +146,6 @@ export class Balloon {
     const off = new THREE.Vector3(this.pos.x - player.pos.x, 0, this.pos.z - player.pos.z);
     const lateral = off.addScaledVector(facing, -off.dot(facing));
     return facing.clone().setY(0).addScaledVector(lateral, AIM_LATERAL).normalize();
-  }
-
-  hazardAt(p, colliders) {
-    const r = BALLOON_RADIUS;
-    if (p.y - r <= 0) return 'the floor';
-    for (const c of colliders) {
-      const cx = THREE.MathUtils.clamp(p.x, c.min.x, c.max.x);
-      const cy = THREE.MathUtils.clamp(p.y, c.min.y, c.max.y);
-      const cz = THREE.MathUtils.clamp(p.z, c.min.z, c.max.z);
-      const dx = p.x - cx, dy = p.y - cy, dz = p.z - cz;
-      if (dx * dx + dy * dy + dz * dz < r * r * 0.85) return `a ${c.name}`;
-    }
-    return null;
   }
 
   // Check contact with a player. Returns {kind, vel} if the player touched the balloon (does not apply it).
@@ -229,7 +243,8 @@ export class Balloon {
     const h = this.pos.y - ground;
     const s = THREE.MathUtils.clamp(0.6 + h * 0.08, 0.6, 2.2);
     this.marker.scale.set(s, s, s);
-    this.markerRing.material.color.set(h < 3 ? 0xff3030 : 0xff5cc8);
+    // red when it's about to drop into the water
+    this.markerRing.material.color.set(ground === 0 && h < 3 ? 0xff3030 : 0xff5cc8);
 
     for (const p of this.particles) {
       if (p.life <= 0) continue;
