@@ -57,6 +57,25 @@ export function buildWorld(scene) {
     return mesh;
   }
 
+  // A staircase of `n` steps climbing `rise` meters from y0. (x, z) is the center of the first
+  // step; each step moves by (dx, dz). Steps are `width` wide across the climb direction.
+  // A railing on the open side (railSide = +1/-1 across the climb) keeps players from drifting off.
+  function stairs(x, z, dx, dz, n, y0, rise, width, colors, railSide) {
+    const across = dx ? 'z' : 'x';
+    // see-through so the railing doesn't hide the balloon from the camera
+    const railMat = toon(0xe8f4ff, { transparent: true, opacity: 0.35, depthWrite: false });
+    for (let i = 0; i < n; i++) {
+      const h = ((i + 1) / n) * rise;
+      const cx = x + dx * i, cz = z + dz * i;
+      const sx = dx ? 1 : width, sz = dx ? width : 1;
+      box(cx, y0, cz, sx, h, sz, colors[i % 2], { name: 'stairs' });
+      // banister post + rail section, tall enough that you can't step over it (you can jump it)
+      const off = railSide * (width / 2 + 0.1);
+      const rx = across === 'x' ? cx + off : cx, rz = across === 'z' ? cz + off : cz;
+      box(rx, y0, rz, dx ? 1 : 0.2, h + 1, dx ? 0.2 : 1, 0xffffff, { name: 'stair railing', shadow: false, mat: railMat });
+    }
+  }
+
   // ---------- Floor (flooded! the water is the only thing that pops the balloon) ----------
   const W = ROOM.maxX - ROOM.minX, D = ROOM.maxZ - ROOM.minZ, H = ROOM.height;
   const floorTex = canvasTexture(256, 256, (g, w, h) => {
@@ -197,11 +216,7 @@ export function buildWorld(scene) {
   // railing along balcony edge (low, players can hop it)
   box(22.15, balcY, -6, 0.15, 0.7, 32, 0xff7a2f, { name: 'railing' });
   // stairs up along the front wall, from x=9 to 22
-  const steps = 13;
-  for (let i = 0; i < steps; i++) {
-    const h = ((i + 1) / steps) * balcY;
-    box(9.5 + i, 0, 19.5, 1, h, 3, i % 2 ? 0xffd36b : 0xffc44d, { name: 'stairs' });
-  }
+  stairs(9.5, 19.75, 1, 0, 13, 0, balcY, 4.5, [0xffc44d, 0xffd36b], -1);
   // vending machines on the balcony
   box(28.5, balcY, -14, 2, 3.4, 1.8, 0xff4d5e, { name: 'vending machine' });
   box(28.5, balcY, -10, 2, 3.4, 1.8, 0x3d8bff, { name: 'vending machine' });
@@ -299,20 +314,13 @@ export function buildWorld(scene) {
   box(-26, loftY - 0.6, 14, 8, 0.6, 16, 0x8fd3ff, { name: 'loft' });
   for (const z of [7, 13, 20]) box(-22.4, 0, z, 0.8, loftY - 0.6, 0.8, 0xf2f2f2, { name: 'pillar' });
   box(-21.85, loftY, 11, 0.15, 0.7, 10, 0x4fbf5a, { name: 'railing' });
-  const leftSteps = 18;
-  for (let i = 0; i < leftSteps; i++) {
-    box(-4.5 - i, 0, 19.5, 1, ((i + 1) / leftSteps) * loftY, 3, i % 2 ? 0x8fd3ff : 0x6fc0f5, { name: 'stairs' });
-  }
+  stairs(-4.5, 19.75, -1, 0, 18, 0, loftY, 4.5, [0x6fc0f5, 0x8fd3ff], -1);
 
   // ---------- Upper deck above the right balcony (y=13) with stairs from the balcony ----------
   const deckY = 13;
   box(26.5, deckY - 0.5, 15, 7, 0.5, 14, 0xff8fa3, { name: 'upper deck' });
   for (const z of [9, 21]) box(23.4, balcY, z, 0.6, deckY - balcY - 0.5, 0.6, 0xf2f2f2, { name: 'pillar' });
-  const deckSteps = 14;
-  for (let i = 0; i < deckSteps; i++) {
-    const h = ((i + 1) / deckSteps) * (deckY - balcY);
-    box(28.6, balcY, -6 + i, 2.6, h, 1, i % 2 ? 0xff8fa3 : 0xff7a93, { name: 'stairs' });
-  }
+  stairs(27.75, -6, 0, 1, 14, balcY, deckY - balcY, 4.5, [0xff7a93, 0xff8fa3], -1);
 
   // ---------- Milk crates: stepping stones out of the water ----------
   for (const [x, z, h] of [[1, -4.5, 1.2], [-11, 5.5, 1.2], [11.5, 6, 1.2], [-26, 0, 1.2], [1.5, 9, 2.4], [-13, -11.5, 1.2]]) {

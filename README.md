@@ -12,6 +12,7 @@ Runs in any modern browser (Chrome, Edge, Firefox, Safari), so it works on **Win
 | **Bump**: just be under or against it | small pop upward (~2 m) |
 | **Hit** | bigger boost up and forward (~6 m) |
 | **Kick** | MASSIVE launch (~15 m) |
+| **Sprint** | quick burst of speed to dive after a low balloon (short cooldown) |
 
 Where you stand matters: a balloon off to your side gets sent that way, running carries
 your momentum into it, low hits pop it up and high hits drive it forward.
@@ -23,11 +24,11 @@ the left loft (with a long staircase along the front wall). The pink ring under 
 shows where it will land, and it turns red when the balloon is about to hit the water. Taking turns touching the balloon builds a combo multiplier (up to x5).
 
 ## Controls
-**Online (one player per computer):** `WASD`/arrows move · `Space` jump · `Q`/`J` hit · `E`/`K` kick
+**Online (one player per computer):** `WASD`/arrows move · `Space` jump · `Q`/`J` hit · `E`/`K` kick · `Shift` sprint
 
-**Local split-screen:** P1 `WASD` · `Space` · `Q` hit · `E` kick. P2 `IJKL`/arrows · `;`/`Enter` jump · `U` hit · `O` kick
+**Local split-screen:** P1 `WASD` · `Space` · `Q` hit · `E` kick · `Left Shift` sprint. P2 `IJKL`/arrows · `;`/`Enter` jump · `U` hit · `O` kick · `Right Shift` sprint
 
-**Gamepad:** left stick · A jump · X hit · B kick · Start
+**Gamepad:** left stick · A jump · X hit · B kick · Y (or stick click) sprint · Start
 
 ## Playing online with a friend
 1. Both of you open the game (see *Running it* below).

@@ -40,6 +40,7 @@ export const sfx = {
   hit: () => { tone({ freq: 300, to: 620, dur: 0.14, type: 'triangle', vol: 0.3 }); noise(0.05, 0.15); },
   kick: () => { tone({ freq: 140, to: 900, dur: 0.3, type: 'square', vol: 0.18 }); noise(0.08, 0.25); },
   jump: () => tone({ freq: 420, to: 700, dur: 0.1, type: 'sine', vol: 0.12 }),
+  dash: () => { noise(0.18, 0.18); tone({ freq: 200, to: 520, dur: 0.16, type: 'sine', vol: 0.1 }); },
   combo: (n) => tone({ freq: 500 + n * 80, to: 800 + n * 80, dur: 0.12, type: 'triangle', vol: 0.15, delay: 0.05 }),
   pop: () => { noise(0.4, 0.6); tone({ freq: 900, to: 80, dur: 0.35, type: 'sawtooth', vol: 0.15 }); },
   count: (last) => tone({ freq: last ? 880 : 440, dur: last ? 0.35 : 0.15, type: 'square', vol: 0.12 }),

@@ -335,7 +335,7 @@ function frame(now, fromWorker = false) {
     const h = dt / steps;
     for (let s = 0; s < steps; s++) {
       for (const i of mine) {
-        const inp = s === 0 ? inputs[i] : { ...inputs[i], jump: false, hit: false, kick: false };
+        const inp = s === 0 ? inputs[i] : { ...inputs[i], jump: false, hit: false, kick: false, sprint: false };
         players[i].update(h, inp, rigs[i].fwd, colliders);
       }
       const hazard = balloon.step(h, colliders, authoritative() && state.phase === 'play');
@@ -374,6 +374,7 @@ function frame(now, fromWorker = false) {
     for (const i of mine) {
       for (const ev of players[i].events) {
         if (ev === 'jump') sfx.jump();
+        if (ev === 'dash') sfx.dash();
         if (online() && (ev === 'hit' || ev === 'kick')) net.send({ t: 'act', kind: ev });
       }
       players[i].events.length = 0;

@@ -11,6 +11,10 @@ const GRAVITY = 28;
 const JUMP_VEL = 13.5;
 const DOUBLE_JUMP_VEL = 12.5;
 const WADE_SPEED = 0.7; // speed multiplier while wading through the floor water
+// Sprint: a short burst of speed for diving after a low balloon
+const DASH_SPEED = 19;
+const DASH_TIME = 0.35;
+const DASH_COOLDOWN = 1.1;
 const STEP_UP = 0.6;
 
 export const HIT_WINDOW = 0.22;
@@ -47,6 +51,7 @@ export class Player {
     this.hitTimer = 0; this.hitUsed = false; this.hitCooldown = 0;
     this.kickTimer = 0; this.kickUsed = false; this.kickCooldown = 0;
     this.bumpCooldown = 0;
+    this.dashTimer = 0; this.dashCooldown = 0;
     this.walkPhase = 0;
     this.events = []; // 'jump' | 'hit' | 'kick' for sounds
     // remote smoothing target
@@ -105,6 +110,7 @@ export class Player {
     this.netPos.copy(this.pos); this.netVel.set(0, 0, 0); this.netYaw = yaw;
     this.grounded = true; this.jumps = 0;
     this.hitTimer = this.kickTimer = 0;
+    this.dashTimer = this.dashCooldown = 0;
   }
 
   get facing() { return new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw)); }
@@ -121,11 +127,23 @@ export class Player {
       d = Math.atan2(Math.sin(d), Math.cos(d));
       this.yaw += d * Math.min(1, dt * 14);
     }
-    const accel = this.grounded ? GROUND_ACCEL : AIR_ACCEL;
-    const speed = this.grounded && this.pos.y <= 0.01 ? SPEED * WADE_SPEED : SPEED;
-    const tx = wish.x * speed * wishLen, tz = wish.z * speed * wishLen;
-    this.vel.x += THREE.MathUtils.clamp(tx - this.vel.x, -accel * dt, accel * dt);
-    this.vel.z += THREE.MathUtils.clamp(tz - this.vel.z, -accel * dt, accel * dt);
+    // sprint burst toward where you're steering (or facing, if standing still); works in the air too
+    this.dashCooldown -= dt;
+    this.dashTimer = Math.max(0, this.dashTimer - dt);
+    if (input.sprint && this.dashCooldown <= 0) {
+      const dir = wishLen > 0.05 ? wish : this.facing;
+      this.vel.x = dir.x * DASH_SPEED; this.vel.z = dir.z * DASH_SPEED;
+      this.yaw = Math.atan2(dir.x, dir.z);
+      this.dashTimer = DASH_TIME; this.dashCooldown = DASH_COOLDOWN; this.events.push('dash');
+    }
+
+    if (this.dashTimer <= 0) {
+      const accel = this.grounded ? GROUND_ACCEL : AIR_ACCEL;
+      const speed = this.grounded && this.pos.y <= 0.01 ? SPEED * WADE_SPEED : SPEED;
+      const tx = wish.x * speed * wishLen, tz = wish.z * speed * wishLen;
+      this.vel.x += THREE.MathUtils.clamp(tx - this.vel.x, -accel * dt, accel * dt);
+      this.vel.z += THREE.MathUtils.clamp(tz - this.vel.z, -accel * dt, accel * dt);
+    }
 
     // jumping (double jump allowed)
     this.coyote = this.grounded ? 0.1 : this.coyote - dt;

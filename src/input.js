@@ -3,16 +3,16 @@
 const KEYMAPS = [
   {
     up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'],
-    jump: ['Space'], hit: ['KeyQ'], kick: ['KeyE'],
+    jump: ['Space'], hit: ['KeyQ'], kick: ['KeyE'], sprint: ['ShiftLeft'],
   },
   {
     up: ['KeyI', 'ArrowUp'], down: ['KeyK', 'ArrowDown'], left: ['KeyJ', 'ArrowLeft'], right: ['KeyL', 'ArrowRight'],
-    jump: ['Semicolon', 'Enter', 'NumpadEnter'], hit: ['KeyU'], kick: ['KeyO'],
+    jump: ['Semicolon', 'Enter', 'NumpadEnter'], hit: ['KeyU'], kick: ['KeyO'], sprint: ['ShiftRight'],
   },
   // online: one player per computer, so they get the comfiest keys from both layouts
   {
     up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
-    jump: ['Space'], hit: ['KeyQ', 'KeyJ'], kick: ['KeyE', 'KeyK'],
+    jump: ['Space'], hit: ['KeyQ', 'KeyJ'], kick: ['KeyE', 'KeyK'], sprint: ['ShiftLeft', 'ShiftRight'],
   },
 ];
 export const ONLINE_KEYS = 2;
@@ -52,6 +52,7 @@ export function pollPlayer(keymap, padIndex) {
   let jumpHeld = anyDown(km.jump);
   let hit = anyPressed(km.hit);
   let kick = anyPressed(km.kick);
+  let sprint = anyPressed(km.sprint);
 
   const pad = readPad(i);
   if (pad) {
@@ -62,7 +63,8 @@ export function pollPlayer(keymap, padIndex) {
     const edge = (b) => btn(b) && !prevPad[i][b];
     jump = jump || edge(PAD.A);
     jumpHeld = jumpHeld || btn(PAD.A);
-    hit = hit || edge(PAD.X) || edge(PAD.Y);
+    hit = hit || edge(PAD.X);
+    sprint = sprint || edge(PAD.Y) || edge(10); // Y or left-stick click
     kick = kick || edge(PAD.B);
     // also allow right trigger / bumper for kick
     kick = kick || edge(5) || edge(7);
@@ -71,7 +73,7 @@ export function pollPlayer(keymap, padIndex) {
 
   const len = Math.hypot(x, y);
   if (len > 1) { x /= len; y /= len; }
-  return { x, y, jump, jumpHeld, hit, kick };
+  return { x, y, jump, jumpHeld, hit, kick, sprint };
 }
 
 export function startPressed() {
